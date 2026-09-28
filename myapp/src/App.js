@@ -3,6 +3,7 @@ import PDFViewer from './components/reader'
 import HomePage from './components/home'
 import LoginPage from './components/login';
 import SignupPage from './components/signup';
+import HistoryPage from './components/history';
 import { useState } from 'react';
 
 
@@ -16,6 +17,8 @@ function App() {
 <Route path="/signup" element={<SignupPage/>} />
 
 <Route path="/book" element={<PDFViewer />} />
+<Route path="/history" element={<HistoryPage />} />
+
 
    </Routes>
    </BrowserRouter>

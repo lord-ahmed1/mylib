@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import RequestHandeler from '../post_get'
-
+import Nav from './nav';
 const baseUrl = process.env.REACT_APP_BASE_URL;
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -30,6 +30,7 @@ function onSelectBook(pdfUrl){
 
   return (
     <div style={styles.container}>
+      <Nav/>
       <h2>Library Catalog</h2>
       {Object.entries(library).map(([field, books]) => (
         <div key={field} style={styles.section}>
@@ -73,10 +74,10 @@ function onSelectBook(pdfUrl){
 }
 
 const styles = {
-  container: { padding: '24px', fontFamily: 'sans-serif', backgroundColor: '#f4f6f8', minHeight: '100vh' },
+  container: { padding:0, fontFamily: 'sans-serif', backgroundColor: '#f4f6f8', minHeight: '100vh' },
   section: { marginBottom: '32px' },
   fieldHeader: { textTransform: 'capitalize', borderBottom: '2px solid #ddd', paddingBottom: '8px', color: '#333' },
-  grid: { display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '16px' },
+  grid: { display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '16px',justifyContent:'center' },
   card: {
     width: '140px',
     backgroundColor: '#fff',

@@ -2,6 +2,7 @@ const userModel=require('../../model/user')
 
 async function updateHistory(req,res){
     const {bookName,page}=req.body;
+    console.log('look page'+page)
     username=req.user.username
 
     // Step 1: Atomically remove any existing entry for this book
@@ -18,4 +19,11 @@ async function updateHistory(req,res){
         res.send(200)
 }
 
-module.exports=updateHistory
+async function retrievHistory(req,res){
+    username=req.user.username
+    await userModel.findOne({username}).then((found,err)=>{
+    res.send(found.history)
+    })
+}
+
+module.exports={updateHistory,retrievHistory}

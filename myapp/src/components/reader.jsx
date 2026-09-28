@@ -17,8 +17,8 @@ export default function PDFViewer() {
   const filePath = localStorage['chosenBook'];
   const [loading, setLoading] = useState(true);
   const [numPages, setNumPages] = useState(null);
-  const [currentPage, setCurrentPage] = useState(100);
-  const [inputPage, setInputPage] = useState('100');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [inputPage, setInputPage] = useState('0');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(
     window.innerWidth > window.innerHeight
@@ -29,6 +29,7 @@ export default function PDFViewer() {
   const containerRef = useRef(null);
   const pageRefs = useRef({});
   const initialScrolledRef = useRef(false);
+  const isResizingRef = useRef(false);
 
   const requestHandeler = useMemo(() => new RequestHandeler(baseUrl), []);
   const navigate = useNavigate();
@@ -52,7 +53,6 @@ export default function PDFViewer() {
       "/api/users/history/bookmark",
       (res) => {
         if (!isMounted) return;
-        // Accept res.page if backend returns an object, or res if number
         const pageNum = typeof res === 'object' ? res?.page : res;
         if (pageNum) {
           setCurrentPage(Number(pageNum));
@@ -70,9 +70,10 @@ export default function PDFViewer() {
     return () => { isMounted = false; };
   }, [filePath, navigate, requestHandeler]);
 
-  // Handle Resize
+  // Handle Resize and Re-anchor Active Page
   useEffect(() => {
     const handleResize = () => {
+      isResizingRef.current = true;
       const landscape = window.innerWidth > window.innerHeight;
       setIsLandscape(landscape);
 
@@ -81,9 +82,23 @@ export default function PDFViewer() {
       } else {
         setPageWidth(Math.min(window.innerWidth * 0.95, 800));
       }
+
+      // Re-scroll to current active page to lock layout position during orientation change
+      if (currentPage > 0 && pageRefs.current[currentPage]) {
+        requestAnimationFrame(() => {
+          pageRefs.current[currentPage]?.scrollIntoView({
+            behavior: 'auto',
+            block: 'start',
+          });
+          setTimeout(() => {
+            isResizingRef.current = false;
+          }, 150);
+        });
+      } else {
+        isResizingRef.current = false;
+      }
     };
 
-    handleResize();
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
 
@@ -91,7 +106,7 @@ export default function PDFViewer() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, []);
+  }, [currentPage]);
 
   // Fullscreen Listener
   useEffect(() => {
@@ -108,7 +123,7 @@ export default function PDFViewer() {
   // Sync Input & Persist to Backend (Debounced)
   useEffect(() => {
     setInputPage(String(currentPage));
-    if (!loading && initialScrolledRef.current) {
+    if (!loading && initialScrolledRef.current && currentPage > 0) {
       const timer = setTimeout(() => {
         requestHandeler.post(
           '/api/users/history/update',
@@ -125,11 +140,10 @@ export default function PDFViewer() {
   useEffect(() => {
     if (!numPages || initialScrolledRef.current) return;
 
-    const targetPage = Math.min(Math.max(currentPage, 1), numPages);
+    const targetPage = Math.min(Math.max(currentPage || 1, 1), numPages);
     const targetElement = pageRefs.current[targetPage];
 
     if (targetElement) {
-      // Small timeout ensures virtual wrapper heights have populated in DOM
       const timer = setTimeout(() => {
         targetElement.scrollIntoView({ behavior: 'auto', block: 'start' });
         initialScrolledRef.current = true;
@@ -145,8 +159,8 @@ export default function PDFViewer() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // Block observer state changes until initial scroll to target page completes
-        if (!initialScrolledRef.current) return;
+        // Suppress updates during initial scroll jump or orientation resize
+        if (!initialScrolledRef.current || isResizingRef.current) return;
 
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -159,7 +173,7 @@ export default function PDFViewer() {
       },
       {
         root: containerRef.current,
-        threshold: 0.3,
+        threshold: 0.2,
       }
     );
 
@@ -199,6 +213,9 @@ export default function PDFViewer() {
       setInputPage(String(currentPage));
     }
   }
+
+  // Fallback to page 1 if currentPage is 0 during startup phase
+  const activePage = currentPage > 0 ? currentPage : 1;
 
   return (
     <div ref={viewerContainerRef} style={styles.container}>
@@ -240,7 +257,7 @@ export default function PDFViewer() {
         <Document file={pdfSource} onLoadSuccess={onDocumentLoadSuccess}>
           {Array.from(new Array(numPages || 0), (_, index) => {
             const pageNum = index + 1;
-            const shouldRender = Math.abs(pageNum - currentPage) <= VIRTUAL_BUFFER;
+            const shouldRender = Math.abs(pageNum - activePage) <= VIRTUAL_BUFFER;
 
             return (
               <div
@@ -286,7 +303,7 @@ const styles = {
     width: '100vw',
     backgroundColor: '#000000',
     overflow: 'hidden',
-    position: 'relative',
+    position: 'fixed',
   },
   toolbar: {
     display: 'flex',

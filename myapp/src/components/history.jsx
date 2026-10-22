@@ -6,6 +6,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import RequestHandeler from '../post_get';
 import Nav from './nav';
 
+
 const baseUrl = process.env.REACT_APP_BASE_URL;
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -17,7 +18,6 @@ export default function HistoryPage() {
   const navigate = useNavigate();
   const requestHandel = new RequestHandeler(baseUrl);
   const token = localStorage.getItem('accessToken');
-
   useEffect(() => {
     requestHandel.get('/api/users/history', setLibrary, navigate);
   }, []);
@@ -36,16 +36,9 @@ export default function HistoryPage() {
         <div style={styles.grid}>
           {library.map((book) => {
             const pdfUrl = book.bookName;
+            let bookName=pdfUrl.split('path=')
+            bookName=bookName[bookName.length-1]
             const currentPage = book.page || 1;
-
-            const pdfSource = {
-              url: pdfUrl,
-              httpHeaders: {
-                Authorization: `Bearer ${token}`,
-              },
-              withCredentials: false,
-            };
-
             return (
               <div
                 key={book.id || book._id}
@@ -53,17 +46,8 @@ export default function HistoryPage() {
                 onClick={() => onSelectBook(pdfUrl)}
               >
                 <div style={styles.coverWrapper}>
-                  <Document
-                    file={pdfSource}
-                    loading={<div style={styles.placeholder}>Loading...</div>}
-                  >
-                    <Page
-                      pageNumber={1}
-                      width={140}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                    />
-                  </Document>
+                  <img src={baseUrl+'/api/books/cover/'+bookName.replace(".pdf","")} width={140}/>
+
 
                   {/* Dark Strip Badge for Last Read Page */}
                   <div style={styles.pageBadge}>

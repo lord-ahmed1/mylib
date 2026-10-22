@@ -22,7 +22,6 @@ export default function HomePage() {
   useEffect(() => {
     requestHandel.get('/api/books',setLibrary,navigate)
   }, []);
-
 function onSelectBook(pdfUrl){
   localStorage['chosenBook']=pdfUrl
   navigate('/book');
@@ -39,13 +38,6 @@ function onSelectBook(pdfUrl){
             {books.map((book) => {
               const pdfUrl = baseUrl+`/api/books/file?path=${book.id}`;
 
-              const pdfSource = {
-              url: pdfUrl,
-              httpHeaders: {
-                Authorization: `Bearer ${token}`
-              },
-              withCredentials: false
-            };
               return (
                 <div
                   key={book.id}
@@ -53,14 +45,7 @@ function onSelectBook(pdfUrl){
                   onClick={() => onSelectBook(pdfUrl)}
                 >
                   <div style={styles.coverWrapper}>
-                    <Document file={pdfSource} loading={<div style={styles.placeholder}>Loading...</div>}>
-                      <Page
-                        pageNumber={1}
-                        width={140}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                      />
-                    </Document>
+                    <img src={baseUrl+'/api/books/cover/'+book.id} width={140}/>
                   </div>
                   <div style={styles.bookTitle}>{book.title}</div>
                 </div>

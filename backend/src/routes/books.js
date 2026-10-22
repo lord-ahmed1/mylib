@@ -2,7 +2,7 @@ const path = require('path');
 express=require('express');
 const fs = require('fs');
 const {authenticateToken}=require('../middleware/auth');
-
+const name_extractor=require('../controller/variables/name_extractor');
 router=express.Router();
 
 
@@ -18,7 +18,7 @@ router.get('/',authenticateToken, (req, res) => {
   fields.forEach((field) => {
     const fieldPath = path.join(req.app.get('path_to_app'), field);
     if (fs.statSync(fieldPath).isDirectory()) {
-      const files = fs.readdirSync(fieldPath).filter((f) => f.endsWith('.pdf'));
+      const files = fs.readdirSync(fieldPath).filter((f) => fs.statSync(path.join(req.app.get('path_to_app'), field,f)).isDirectory());
       library[field] = files.map((file) => ({
         title: file.replace('.pdf', ''),
         id: encodeURIComponent(`${field}/${file}`),
@@ -31,7 +31,9 @@ router.get('/',authenticateToken, (req, res) => {
 
 // Endpoint 2: Stream PDF file to client
 router.get('/file',authenticateToken, (req, res) => {
-  const fileRelativePath = req.query.path;
+  let fileRelativePath = req.query.path;
+  const filename=name_extractor(fileRelativePath+'.pdf')
+  fileRelativePath=fileRelativePath+"/"+filename
   if (!fileRelativePath) return res.status(400).send('Missing file path');
 
   const safePath = path.normalize(fileRelativePath).replace(/^(\.\.[\/\\])+/, '');
@@ -44,5 +46,12 @@ router.get('/file',authenticateToken, (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.sendFile(absolutePath);
 });
+
+router.get('/cover/:path',(req,res)=>{
+  const bookpath=req.params.path
+  img_name=name_extractor(bookpath)+".jpg"
+  res.sendFile(path.join(req.app.get('path_to_app'), bookpath,img_name))
+
+})
 
 module.exports=router;
